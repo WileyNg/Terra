@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terra — terrain and landscape tools for Rhino</title>
+<meta name="description" content="Terra is a free Rhino plugin for landscape architects: terrain sculpting, site import, grading, cut and fill, scatter and asset libraries.">
+<meta property="og:title" content="Terra for Rhino">
+<meta property="og:description" content="Free terrain and landscape tools for Rhino 7 and 8.">
+<meta property="og:image" content="media/og-cover.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#DDE3DF;
+  --paper-2:#E9EDE9;
+  --ink:#141D1B;
+  --ink-soft:#4A5A55;
+  --line:#8C9A94;
+  --line-faint:#B9C3BD;
+  --cut:#A8442C;
+  --fill:#3C6A88;
+  --sheet-max:1180px;
+  --gap:clamp(28px,5vw,64px);
+  --display:"IBM Plex Sans Condensed",Arial Narrow,system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--body);font-size:16px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+img,video{display:block;max-width:100%}
+a{color:inherit}
+
+/* ---------- sheet frame ---------- */
+.sheet{max-width:var(--sheet-max);margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+.rule{height:1px;background:var(--line-faint);border:0;margin:0}
+.rule--ink{background:var(--ink);height:2px}
+
+/* ---------- annotation labels ---------- */
+.tag{
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-soft);
+}
+.tag--cut{color:var(--cut)}
+
+/* ---------- title block ---------- */
+.titleblock{padding:clamp(22px,4vw,34px) 0 0}
+.titleblock__top{display:flex;justify-content:space-between;gap:16px;align-items:baseline;flex-wrap:wrap}
+.wordmark{
+  font-family:var(--display);font-weight:700;
+  font-size:clamp(56px,13vw,140px);line-height:.86;letter-spacing:-.02em;
+  margin:14px 0 0;text-transform:uppercase;
+}
+.wordmark span{color:var(--line)}
+.lede{
+  max-width:44ch;margin:18px 0 0;font-size:clamp(17px,2.1vw,21px);
+  color:var(--ink-soft);
+}
+.lede strong{color:var(--ink);font-weight:500}
+
+/* ---------- actions ---------- */
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin:26px 0 30px}
+.btn{
+  font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+  text-decoration:none;padding:13px 20px;border:1px solid var(--ink);
+  background:var(--ink);color:var(--paper-2);transition:background .15s,color .15s;
+}
+.btn:hover{background:var(--cut);border-color:var(--cut)}
+.btn--ghost{background:transparent;color:var(--ink)}
+.btn--ghost:hover{background:var(--ink);color:var(--paper-2);border-color:var(--ink)}
+.btn:focus-visible,a:focus-visible,button:focus-visible{outline:2px solid var(--cut);outline-offset:3px}
+
+/* ---------- media frame (the signature device) ---------- */
+.frame{position:relative;margin:0;background:var(--paper-2);border:1px solid var(--line)}
+.frame__media{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--paper-2)}
+.frame__media > *{width:100%;height:100%;object-fit:cover}
+.frame::before,.frame::after{
+  content:"";position:absolute;width:9px;height:9px;border:1px solid var(--ink);pointer-events:none;
+}
+.frame::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
+.frame::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
+.frame__caption{
+  display:flex;justify-content:space-between;gap:14px;align-items:baseline;
+  padding:9px 12px;border-top:1px solid var(--line-faint);
+  font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-soft);
+}
+.frame__empty{
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  padding:20px;font-family:var(--mono);font-size:12px;color:var(--line);
+  background:repeating-linear-gradient(45deg,transparent,transparent 9px,var(--line-faint) 9px,var(--line-faint) 10px);
+}
+.frame__empty span{background:var(--paper-2);padding:8px 12px;border:1px solid var(--line-faint)}
+
+/* ---------- hero ---------- */
+.hero{margin:8px 0 0}
+
+/* ---------- plates ---------- */
+.plates{padding:var(--gap) 0 0}
+.plate{
+  display:grid;grid-template-columns:minmax(0,1fr);gap:20px;
+  padding:clamp(28px,4vw,44px) 0;border-top:1px solid var(--line-faint);
+}
+.plate__head{display:flex;gap:14px;align-items:baseline}
+.plate__code{font-family:var(--mono);font-size:11px;color:var(--cut);letter-spacing:.12em;white-space:nowrap;padding-top:6px}
+.plate__title{
+  font-family:var(--display);font-weight:600;text-transform:uppercase;
+  font-size:clamp(26px,4vw,38px);line-height:1.02;letter-spacing:-.01em;margin:0;
+}
+.plate__body{margin:12px 0 0;max-width:46ch;color:var(--ink-soft)}
+.plate__body b{color:var(--ink);font-weight:500}
+@media (min-width:840px){
+  .plate{grid-template-columns:minmax(280px,1fr) minmax(0,1.35fr);gap:var(--gap);align-items:start}
+  .plate__text{position:sticky;top:32px}
+  .plate:nth-child(even) .plate__text{order:2}
+}
+
+/* ---------- install ---------- */
+.install{padding:var(--gap) 0}
+.install__grid{display:grid;gap:22px;margin-top:22px}
+@media (min-width:720px){.install__grid{grid-template-columns:1fr 1fr;gap:var(--gap)}}
+.route{border-top:2px solid var(--ink);padding-top:14px}
+.route h3{font-family:var(--display);text-transform:uppercase;font-size:20px;margin:8px 0 8px;letter-spacing:.01em}
+.route ol{margin:0;padding-left:18px;color:var(--ink-soft)}
+.route li{margin:0 0 7px}
+code{
+  font-family:var(--mono);font-size:.92em;background:var(--paper-2);
+  border:1px solid var(--line-faint);padding:1px 6px;
+}
+
+/* ---------- section heads ---------- */
+.sechead{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap}
+.sechead h2{
+  font-family:var(--display);font-weight:700;text-transform:uppercase;
+  font-size:clamp(22px,3.4vw,30px);margin:6px 0 0;letter-spacing:.01em;
+}
+
+/* ---------- footer ---------- */
+.foot{border-top:2px solid var(--ink);margin-top:var(--gap);padding:16px 0 40px}
+.foot__grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.foot__cell .tag{display:block;margin-bottom:3px}
+.foot__cell a{text-decoration:none;border-bottom:1px solid var(--line)}
+.foot__cell a:hover{border-color:var(--cut);color:var(--cut)}
+
+/* ---------- motion ---------- */
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+.reveal.is-in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .reveal{opacity:1;transform:none;transition:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     EDIT ONLY THE CONFIG BLOCK NEAR THE BOTTOM OF THIS FILE.
+     Everything above is layout you should not need to touch.
+     ============================================================ -->
+
+<div class="sheet">
+
+  <header class="titleblock">
+    <div class="titleblock__top">
+      <span class="tag">Rhino 7 &amp; 8 · Windows</span>
+      <span class="tag" id="verTag">Version —</span>
+    </div>
+    <h1 class="wordmark">Terra<span>.</span></h1>
+    <p class="lede">Terrain and landscape tools for Rhino. Sculpt ground, import real sites, grade paths and walls, read cut and fill — <strong>free, and built for landscape architects.</strong></p>
+    <div class="actions" id="actions"></div>
+  </header>
+
+  <figure class="frame hero" id="hero"></figure>
+
+  <section class="plates" id="plates" aria-label="What Terra does"></section>
+
+  <section class="install" id="install">
+    <div class="sechead">
+      <h2>Install</h2>
+      <span class="tag">Two ways in</span>
+    </div>
+    <div class="install__grid">
+      <div class="route">
+        <span class="tag">Route A — recommended</span>
+        <h3>Package Manager</h3>
+        <ol>
+          <li>Open Rhino.</li>
+          <li>Run <code>_PackageManager</code>.</li>
+          <li>Search for <code>Terra</code> and click Install.</li>
+          <li>Restart Rhino.</li>
+        </ol>
+      </div>
+      <div class="route">
+        <span class="tag">Route B — manual</span>
+        <h3>Download the RHI</h3>
+        <ol>
+          <li>Download the package from Food4Rhino.</li>
+          <li>Close Rhino.</li>
+          <li>Double-click the installer.</li>
+          <li>Reopen Rhino — commands start with <code>Terra_</code>.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div class="foot__grid" id="foot"></div>
+  </footer>
+
+</div>
+
+<script>
+/* ============================================================
+   CONFIG — this is the only part you edit day to day.
+   Add a plate = add one object to PLATES. Nothing else changes.
+   media type: "video" (mp4, preferred) or "image" (webp/jpg/gif)
+   ============================================================ */
+const SITE = {
+  version: "2.0",
+
+  links: {
+    food4rhino: "https://www.food4rhino.com/",   // ← replace with your app page
+    docs:       "",                              // optional, leave "" to hide
+    forum:      "https://discourse.mcneel.com/", // optional
+    email:      "you@example.com"                // ← replace
+  },
+
+  hero: {
+    type: "video",
+    src: "media/hero.mp4",
+    poster: "media/hero.jpg",
+    caption: "Sculpting terrain with live contours",
+    note: "Rhino viewport"
+  },
+
+  plates: [
+    {
+      code: "TR-01",
+      title: "Sculpt",
+      body: "Push and pull ground with a brush and watch <b>live contour lines</b> update in the viewport. Set the contour interval, sculpt, bake when you are happy.",
+      media: { type:"video", src:"media/sculpt.mp4", poster:"media/sculpt.jpg" },
+      caption: "Brush sculpting, contour interval 0.5 m"
+    },
+    {
+      code: "TR-02",
+      title: "Import site",
+      body: "Draw a rectangle on a map and pull in <b>OSM buildings and roads, DEM terrain, satellite imagery, or Google photorealistic 3D tiles</b> — projected and placed in your document.",
+      media: { type:"video", src:"media/import-site.mp4", poster:"media/import-site.jpg" },
+      caption: "Site import, four modes"
+    },
+    {
+      code: "TR-03",
+      title: "Paths and walls",
+      body: "Draw a centreline and get a graded path or wall that ties into the surrounding ground, with <b>slope control and daylight lines</b> resolved for you.",
+      media: { type:"video", src:"media/paths.mp4", poster:"media/paths.jpg" },
+      caption: "Path grading with daylight line"
+    },
+    {
+      code: "TR-04",
+      title: "Cut and fill",
+      body: "Read earthwork straight off the model. <b>Cut in red, fill in blue</b>, with volumes and a section through any clipping plane.",
+      media: { type:"image", src:"media/cutfill.webp" },
+      caption: "Cut and fill volumes"
+    },
+    {
+      code: "TR-05",
+      title: "Scatter",
+      body: "Paint planting and site furniture across terrain, meshes or surfaces with <b>jitter on rotation and scale</b> — previewed live, committed on mouse up.",
+      media: { type:"video", src:"media/scatter.mp4", poster:"media/scatter.jpg" },
+      caption: "Scatter brush"
+    },
+    {
+      code: "TR-06",
+      title: "Assets and arrays",
+      body: "A cloud library of blocks, plus a builder for <b>repeating elements — railings, edges, kerbs</b> — driven along any curve.",
+      media: { type:"video", src:"media/array.mp4", poster:"media/array.jpg" },
+      caption: "Array builder along a guide curve"
+    },
+    {
+      code: "TR-07",
+      title: "Sunlight",
+      body: "GPU shadow accumulation over a day or a season, painted onto the ground so you can see <b>where the sun actually lands</b>.",
+      media: { type:"image", src:"media/sunlight.webp" },
+      caption: "Sunlight hours analysis"
+    }
+  ]
+};
+
+/* ============================================================
+   RENDER — no need to edit below this line.
+   ============================================================ */
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  document.getElementById("verTag").textContent = "Version " + SITE.version;
+
+  /* actions */
+  const acts = [];
+  if (SITE.links.food4rhino) acts.push(`<a class="btn" href="${esc(SITE.links.food4rhino)}" rel="noopener">Download Terra</a>`);
+  acts.push(`<a class="btn btn--ghost" href="#install">How to install</a>`);
+  if (SITE.links.docs) acts.push(`<a class="btn btn--ghost" href="${esc(SITE.links.docs)}" rel="noopener">Documentation</a>`);
+  document.getElementById("actions").innerHTML = acts.join("");
+
+  /* media builder — videos are lazy, muted, inline: a GIF that costs 10% as much */
+  function media(m, alt) {
+    if (!m || !m.src) return `<div class="frame__empty"><span>No media yet — drop a file in /media</span></div>`;
+    if (m.type === "video") {
+      return `<video muted loop playsinline preload="none" ${m.poster ? `poster="${esc(m.poster)}"` : ""} data-src="${esc(m.src)}" aria-label="${esc(alt || "")}"></video>`;
+    }
+    return `<img src="${esc(m.src)}" alt="${esc(alt || "")}" loading="lazy" decoding="async">`;
+  }
+
+  function frameInner(m, caption, note, alt) {
+    return `<div class="frame__media">${media(m, alt)}</div>
+            <figcaption class="frame__caption"><span>${esc(caption || "")}</span><span>${esc(note || "")}</span></figcaption>`;
+  }
+
+  /* hero */
+  const h = SITE.hero;
+  $("#hero").innerHTML = frameInner(h, h.caption, h.note, h.caption);
+
+  /* plates */
+  document.getElementById("plates").innerHTML = SITE.plates.map(p => `
+    <article class="plate reveal">
+      <div class="plate__text">
+        <div class="plate__head">
+          <span class="plate__code">${esc(p.code)}</span>
+          <div>
+            <h2 class="plate__title">${esc(p.title)}</h2>
+            <p class="plate__body">${p.body}</p>
+          </div>
+        </div>
+      </div>
+      <figure class="frame">${frameInner(p.media, p.caption, p.code, p.title)}</figure>
+    </article>`).join("");
+
+  /* footer */
+  const f = SITE.links;
+  const cells = [
+    ["Project", "Terra for Rhino"],
+    ["Release", "Version " + SITE.version],
+    ["Licence", "Free to use"],
+  ];
+  if (f.email) cells.push(["Contact", `<a href="mailto:${esc(f.email)}">${esc(f.email)}</a>`]);
+  if (f.forum) cells.push(["Discussion", `<a href="${esc(f.forum)}" rel="noopener">McNeel Forum</a>`]);
+  document.getElementById("foot").innerHTML = cells.map(([k, v]) =>
+    `<div class="foot__cell"><span class="tag">${esc(k)}</span>${v}</div>`).join("");
+
+  /* broken media → honest empty state instead of a broken icon */
+  document.addEventListener("error", (e) => {
+    const el = e.target;
+    if (!(el instanceof HTMLImageElement || el instanceof HTMLVideoElement)) return;
+    const wrap = el.closest(".frame__media");
+    if (wrap) wrap.innerHTML = `<div class="frame__empty"><span>Missing: ${esc(el.currentSrc || el.dataset.src || el.src)}</span></div>`;
+  }, true);
+
+  /* lazy: only fetch a video when it is about to be seen, then play it */
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(en => {
+      const el = en.target;
+      if (el.classList.contains("reveal")) {
+        if (en.isIntersecting) { el.classList.add("is-in"); io.unobserve(el); }
+        return;
+      }
+      if (en.isIntersecting) {
+        if (!el.src && el.dataset.src) { el.src = el.dataset.src; el.load(); }
+        el.play().catch(() => {});
+      } else {
+        el.pause();
+      }
+    });
+  }, { rootMargin: "200px 0px" });
+
+  document.querySelectorAll("video").forEach(v => io.observe(v));
+  document.querySelectorAll(".reveal").forEach(r => io.observe(r));
+})();
+</script>
+</body>
+</html>

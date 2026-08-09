@@ -1,1 +1,72 @@
-# Terra
+# TerraForRhino — website
+
+Static site. No build step, no dependencies, no framework. One HTML file plus a `media/` folder.
+
+```
+/
+├── index.html      ← the whole site (layout + a CONFIG block you edit)
+├── README.md
+└── media/          ← your images and videos
+    ├── hero.mp4
+    ├── hero.jpg
+    ├── sculpt.mp4
+    └── ...
+```
+
+## Publish
+
+1. Push this repo to GitHub (public).
+2. Settings → Pages → Source: **Deploy from a branch** → `main` / `/ (root)` → Save.
+3. Wait ~1 minute. Site is live at `https://<user>.github.io/<repo>/`.
+
+Every `git push` to `main` republishes. That is the entire deployment pipeline.
+
+## Adding content
+
+Open `index.html`, find the `const SITE = {` block near the bottom. Add an object to `plates`:
+
+```js
+{
+  code: "TR-08",
+  title: "New thing",
+  body: "One or two sentences. <b>Bold</b> works.",
+  media: { type:"video", src:"media/newthing.mp4", poster:"media/newthing.jpg" },
+  caption: "Short caption"
+}
+```
+
+Drop the files in `media/`, commit, push. Done.
+
+## Media rules (this is where the money and the load time go)
+
+**Never ship a GIF.** A 10-second screen recording is ~25 MB as a GIF and ~1.5 MB as an MP4, and it looks better. Convert everything:
+
+```bash
+# GIF → MP4
+ffmpeg -i in.gif -movflags faststart -pix_fmt yuv420p \
+  -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" out.mp4
+
+# screen recording → web MP4 (1280 wide, no audio)
+ffmpeg -i in.mp4 -an -vf "scale=1280:-2,fps=24" \
+  -c:v libx264 -crf 26 -preset slow -movflags faststart out.mp4
+
+# poster frame (shown before the video loads)
+ffmpeg -i out.mp4 -vframes 1 -q:v 4 out.jpg
+
+# stills → WebP, max 1600px
+ffmpeg -i in.png -vf "scale='min(1600,iw)':-1" -q:v 78 out.webp
+```
+
+Targets: MP4 under 3 MB, WebP under 300 KB.
+
+Optimise **before** the first commit. Git keeps every version of every binary forever — a 40 MB GIF committed once and deleted later still lives in the repo history.
+
+## Custom domain (optional)
+
+1. Buy the domain (Cloudflare Registrar or Porkbun, roughly £9–12/year at cost).
+2. DNS: four `A` records for the apex → `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`. Plus a `CNAME` for `www` → `<user>.github.io`.
+3. GitHub → Settings → Pages → Custom domain → enter it → tick **Enforce HTTPS**.
+
+## Cost
+
+Hosting: £0. GitHub Pages is free for public repos, with soft limits of 1 GB site size and 100 GB bandwidth per month — far beyond what this needs if the media rules above are followed.
