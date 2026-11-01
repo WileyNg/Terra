@@ -4,359 +4,366 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Terra — terrain and landscape tools for Rhino</title>
-<meta name="description" content="Terra is a free Rhino plugin for landscape architects: terrain sculpting, real site import, path and wall grading, cut and fill, scatter and asset libraries.">
+<meta name="description" content="Terra is a free Rhino plugin for landscape architects: terrain sculpting, real site import, path and platform grading, scatter, asset libraries and site analysis.">
 <meta property="og:title" content="Terra for Rhino">
 <meta property="og:description" content="Free terrain and landscape tools for Rhino 7 and 8.">
 <meta property="og:image" content="media/og-cover.jpg">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#F7F4EE">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23DBC28A'/%3E%3Cpath d='M5 22c4-6 7-2 11-7s8-6 11 1' fill='none' stroke='%232B2F36' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#DDE3DF;
-  --paper-2:#E9EDE9;
-  --paper-3:#F2F5F1;
-  --ink:#141D1B;
-  --ink-soft:#4A5A55;
-  --line:#8C9A94;
-  --line-faint:#B9C3BD;
-  --cut:#A8442C;
-  --fill:#3C6A88;
-  --sheet:1180px;
-  --bar-h:58px;
-  --gap:clamp(30px,5vw,68px);
-  --display:"IBM Plex Sans Condensed",Arial Narrow,system-ui,sans-serif;
-  --body:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
-  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --ground:#F7F4EE;
+  --card:#FFFFFF;
+  --well:#F0ECE4;
+  --ink:#2B2F36;
+  --ink-soft:#555B64;
+  --ink-mute:#6B717A;
+  --honey:#DBC28A;
+  --honey-deep:#B89A55;
+  --honey-text:#7A5C14;
+  --honey-tint:#F3EAD4;
+  --edge:#ECE6DA;
+  --sky:#CFE6EA;
+  --sheet:1240px;
+  --radius:22px;
+  --font:"Manrope",system-ui,-apple-system,Segoe UI,sans-serif;
+  --shadow-float:0 4px 20px rgba(30,40,55,.08);
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:calc(var(--bar-h) + 12px)}
-body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+html{scroll-behavior:smooth;scroll-padding-top:96px}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
 img,video,svg{display:block;max-width:100%}
 a{color:inherit}
-h1,h2,h3,h4{margin:0}
-:focus-visible{outline:2px solid var(--cut);outline-offset:3px}
+h1,h2,h3,p{margin:0}
+:focus-visible{outline:3px solid var(--honey-deep);outline-offset:3px;border-radius:8px}
 
-.sheet{max-width:var(--sheet);margin:0 auto;padding:0 clamp(16px,4vw,40px)}
-.tag{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
-
-/* ============ top bar ============ */
-.bar{position:sticky;top:0;z-index:60;height:var(--bar-h);background:rgba(221,227,223,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line-faint)}
-.bar__in{max-width:var(--sheet);margin:0 auto;height:100%;padding:0 clamp(16px,4vw,40px);display:flex;align-items:center;gap:16px}
-.brand{display:flex;align-items:center;gap:9px;text-decoration:none;margin-right:auto}
-.brand__mark{width:22px;height:22px;flex:none}
-.brand__text{font-family:var(--display);font-weight:700;text-transform:uppercase;font-size:20px;letter-spacing:.02em}
-.nav{display:none;gap:2px;align-items:center}
-.nav a{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;padding:8px 11px;color:var(--ink-soft);border-bottom:2px solid transparent}
-.nav a:hover{color:var(--ink)}
-.nav a.is-active{color:var(--ink);border-bottom-color:var(--cut)}
-.bar .btn{padding:9px 15px}
-.burger{display:inline-flex;flex-direction:column;gap:4px;justify-content:center;width:38px;height:34px;padding:0 9px;background:none;border:1px solid var(--line);cursor:pointer}
-.burger i{display:block;height:1.5px;background:var(--ink)}
-@media (min-width:960px){ .nav{display:flex} .burger{display:none} }
-
-.drawer{display:none;background:var(--paper-2);border-bottom:1px solid var(--line-faint);position:sticky;top:var(--bar-h);z-index:59}
-.drawer.is-open{display:block}
-.drawer a{display:block;padding:13px 0;text-decoration:none;font-family:var(--mono);font-size:13px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--line-faint)}
-.drawer a:last-child{border-bottom:0}
-@media (min-width:960px){ .drawer{display:none !important} }
+.sheet{max-width:var(--sheet);margin:0 auto;padding:0 20px}
+.eyebrow{font-weight:800;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--honey-text);margin-bottom:8px}
+.h2{font-size:clamp(32px,4vw,48px);letter-spacing:-.03em;font-weight:800;line-height:1.05}
+.muted{color:var(--ink-soft)}
 
 /* ============ buttons ============ */
-.btn{display:inline-block;font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;padding:13px 20px;border:1px solid var(--ink);background:var(--ink);color:var(--paper-2);transition:background .15s,color .15s,border-color .15s}
-.btn:hover{background:var(--cut);border-color:var(--cut);color:#fff}
-.btn--ghost{background:transparent;color:var(--ink)}
-.btn--ghost:hover{background:var(--ink);border-color:var(--ink);color:var(--paper-2)}
+.btn{display:inline-flex;align-items:center;gap:10px;text-decoration:none;font-weight:800;font-size:17px;padding:16px 24px;border-radius:16px;border:0;cursor:pointer;transition:transform .12s,box-shadow .12s;background:var(--honey);color:var(--ink);box-shadow:0 4px 0 var(--honey-deep)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 0 var(--honey-deep)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--honey-deep)}
+.btn--white{background:var(--card);font-weight:700;box-shadow:0 4px 0 #E4DED2}
+.btn--white:hover{box-shadow:0 6px 0 #E4DED2}
+.btn--white:active{box-shadow:0 1px 0 #E4DED2}
+.btn--dark{background:var(--ink);color:#fff;box-shadow:0 4px 0 #11141A}
+.btn--dark:hover{box-shadow:0 6px 0 #11141A}
+.btn--dark:active{box-shadow:0 1px 0 #11141A}
+.btn--sm{font-size:15px;padding:12px 18px;border-radius:13px}
 
-/* ============ media frame (signature device) ============ */
-.frame{position:relative;margin:0;background:var(--paper-2);border:1px solid var(--line)}
-.frame__media{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--paper-2)}
-.frame__media>*{width:100%;height:100%;object-fit:cover}
-.frame::before,.frame::after{content:"";position:absolute;width:9px;height:9px;border:1px solid var(--ink);pointer-events:none}
-.frame::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
-.frame::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
-.frame__cap{display:flex;justify-content:space-between;gap:14px;align-items:baseline;padding:9px 12px;border-top:1px solid var(--line-faint);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
-.frame__empty{display:flex;align-items:center;justify-content:center;text-align:center;padding:18px;height:100%;font-family:var(--mono);font-size:11px;color:var(--line);background:repeating-linear-gradient(45deg,transparent,transparent 9px,var(--line-faint) 9px,var(--line-faint) 10px)}
-.frame__empty span{background:var(--paper-2);padding:7px 11px;border:1px solid var(--line-faint)}
-.frame--flush{border:0}
-.frame--flush::before,.frame--flush::after{display:none}
+/* ============ top bar ============ */
+.bar{position:sticky;top:0;z-index:60;padding:14px 20px}
+.bar__in{max-width:var(--sheet);margin:0 auto;display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:18px;padding:10px 12px 10px 14px;box-shadow:var(--shadow-float)}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;margin-right:auto}
+.brand__mark{width:34px;height:34px;border-radius:11px;background:var(--honey);display:flex;align-items:center;justify-content:center;flex:none}
+.brand__text{font-weight:800;font-size:20px;letter-spacing:-.02em}
+.nav{display:none;gap:2px;font-weight:600;font-size:15px}
+.nav a{text-decoration:none;padding:10px 14px;border-radius:12px;color:var(--ink-soft)}
+.nav a:hover{background:var(--well);color:var(--ink)}
+.nav a.is-active{background:var(--honey-tint);color:var(--ink)}
+.burger{display:inline-flex;flex-direction:column;gap:4px;justify-content:center;align-items:center;width:44px;height:44px;border:0;border-radius:12px;background:var(--well);cursor:pointer}
+.burger i{display:block;width:18px;height:2px;border-radius:2px;background:var(--ink)}
+.drawer{display:none;max-width:var(--sheet);margin:8px auto 0;background:var(--card);border-radius:18px;padding:8px;box-shadow:var(--shadow-float)}
+.drawer.is-open{display:block}
+.drawer a{display:block;padding:14px 14px;text-decoration:none;font-weight:700;border-radius:12px}
+.drawer a:hover{background:var(--well)}
+@media (min-width:900px){.nav{display:flex}.burger,.drawer,.drawer.is-open{display:none}}
+@media (max-width:480px){.bar .btn--sm{display:none}}
 
 /* ============ hero ============ */
-.hero{padding:clamp(30px,6vw,64px) 0 0}
-.hero__head{display:grid;gap:22px;align-items:end;margin-bottom:24px}
-@media (min-width:900px){.hero__head{grid-template-columns:1.15fr .85fr;gap:var(--gap)}}
-.hero h1{font-family:var(--display);font-weight:700;text-transform:uppercase;font-size:clamp(40px,7.5vw,82px);line-height:.94;letter-spacing:-.015em;margin-top:10px}
-.hero h1 em{font-style:normal;color:var(--line)}
-.hero__lede{font-size:clamp(16px,1.9vw,19px);color:var(--ink-soft);max-width:46ch;margin:0}
-.hero__lede b{color:var(--ink);font-weight:500}
-.hero__actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
-.hero__facts{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:16px}
+.hero{display:flex;flex-wrap:wrap;gap:48px;align-items:center;padding:48px 0 40px}
+.hero__text{flex:1 1 400px;min-width:0}
+.pill{display:inline-flex;align-items:center;gap:8px;background:var(--card);border-radius:999px;padding:8px 14px 8px 8px;font-weight:700;font-size:14px;box-shadow:0 2px 10px rgba(30,40,55,.06)}
+.pill b{background:var(--honey);border-radius:999px;padding:3px 10px;font-size:12px}
+.hero h1{font-size:clamp(42px,6vw,76px);line-height:1.02;letter-spacing:-.035em;font-weight:800;margin:22px 0 18px}
+.hero__lede{font-size:19px;color:var(--ink-soft);max-width:36ch;margin-bottom:30px}
+.hero__actions{display:flex;gap:12px;flex-wrap:wrap}
+.hero__note{font-size:14px;color:var(--ink-mute);margin-top:22px}
+.hero__visual{flex:1.35 1 520px;min-width:0;position:relative}
+.shot{border-radius:28px;overflow:hidden;background:var(--sky);box-shadow:0 24px 60px rgba(30,40,55,.16)}
+.shot img,.shot video{width:100%;aspect-ratio:16/10;object-fit:cover}
 
-/* ============ logo strip ============ */
-.logos{padding:var(--gap) 0 0}
-.logos__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:1px;background:var(--line-faint);border:1px solid var(--line-faint);margin-top:14px}
-.logo{background:var(--paper-2);aspect-ratio:16/7;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--line);text-align:center;padding:8px}
-.logo img{max-height:56%;width:auto;object-fit:contain;filter:grayscale(1);opacity:.75}
+/* floating sidebar — mirrors the plug-in's own */
+.dock{position:absolute;left:-18px;top:34px;background:rgba(255,255,255,.94);border-radius:16px;padding:8px 6px;box-shadow:0 8px 24px rgba(30,40,55,.12);display:flex;flex-direction:column;gap:4px;align-items:center}
+.dock__grip{display:grid;grid-template-columns:repeat(3,3px);gap:3px;padding:4px 0 6px}
+.dock__grip i{width:3px;height:3px;border-radius:2px;background:#B3B7BD}
+.dock__btn{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#3A3F47}
+.dock__btn.cyc{animation:dock 9s infinite}
+.dock__btn svg{width:20px;height:20px}
+.dock__btn.is-terrain{background:rgba(245,169,59,.2);box-shadow:inset 0 0 0 1.5px #F5A93B;color:#B4600C}
+.dock__div{width:26px;height:1px;background:#E2E3E6;margin:2px 0}
+.dock__btn.cyc:nth-of-type(5){animation-delay:3s}
+.dock__btn.cyc:nth-of-type(6){animation-delay:6s}
+@keyframes dock{0%,30%{background:#5C6168;color:#fff}33.4%,100%{background:transparent;color:#3A3F47}}
+@media (max-width:600px){.dock{left:10px;top:10px;transform:scale(.82);transform-origin:top left}}
+
+.toast{position:absolute;right:22px;bottom:-22px;background:rgba(255,255,255,.96);border-radius:16px;padding:12px 16px;box-shadow:0 10px 28px rgba(30,40,55,.14);display:flex;gap:14px;align-items:center;animation:bob 5s ease-in-out infinite}
+.toast__icon{width:40px;height:40px;border-radius:12px;background:var(--honey-tint);color:var(--honey-text);display:flex;align-items:center;justify-content:center;flex:none}
+.toast b{display:block;font-size:15px}
+.toast span{font-size:13px;color:var(--ink-mute)}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@media (max-width:600px){.toast{right:10px;left:10px;bottom:-30px}}
 
 /* ============ sections ============ */
-.sec{padding:var(--gap) 0 0}
-.sechead{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:9px}
-.sechead h2{font-family:var(--display);font-weight:700;text-transform:uppercase;font-size:clamp(24px,3.6vw,34px);letter-spacing:.01em}
-.sec__intro{max-width:56ch;color:var(--ink-soft);margin:16px 0 0}
+.sec{padding:96px 0 0}
+.sechead{display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;margin-bottom:32px}
+.sechead p.muted{max-width:38ch;font-size:17px}
 
-/* ============ feature cards ============ */
-.cards{display:grid;gap:20px;margin-top:24px;grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
-.card{display:flex;flex-direction:column;border:1px solid var(--line);background:var(--paper-2);transition:border-color .15s,transform .15s}
-.card:hover{border-color:var(--ink);transform:translateY(-2px)}
-.card__body{padding:15px 16px 18px;display:flex;flex-direction:column;gap:8px;flex:1}
-.card__code{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--cut)}
-.card h3{font-family:var(--display);font-weight:600;text-transform:uppercase;font-size:22px;letter-spacing:.01em}
-.card ul{margin:0;padding-left:16px;color:var(--ink-soft);font-size:15px}
-.card li{margin:0 0 4px}
+.tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.tool{background:var(--card);border-radius:var(--radius);padding:22px;box-shadow:0 2px 0 var(--edge);transition:transform .18s}
+.tool:hover{transform:translateY(-4px) rotate(-.4deg)}
+.tool__icon{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;margin-bottom:18px}
+.tool__icon svg{width:26px;height:26px}
+.tool h3{font-size:20px;font-weight:800;margin-bottom:6px}
+.tool p{color:var(--ink-soft)}
+.tint-sky{background:#E3F0F2;color:#2B5E66}
+.tint-honey{background:var(--honey-tint);color:var(--honey-text)}
+.tint-leaf{background:#E5EFE2;color:#3E6B33}
+.tint-sun{background:#FBEBDC;color:#9A4A12}
 
-/* ============ gallery ============ */
-.gallery{display:grid;gap:20px;margin-top:24px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}
+.step{display:flex;flex-direction:column;gap:12px}
+.step__media{border-radius:20px;overflow:hidden;background:var(--sky)}
+.step__media img,.step__media video{width:100%;aspect-ratio:4/3;object-fit:cover}
+.step__head{display:flex;gap:10px;align-items:center}
+.step__n{width:32px;height:32px;flex:none;border-radius:999px;background:var(--ink);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px}
+.step:last-child .step__n{background:var(--honey);color:var(--ink)}
+.step__head b{font-size:17px}
+.step p{color:var(--ink-soft);font-size:15px}
 
-/* ============ download ============ */
-.routes{display:grid;gap:22px;margin-top:24px}
-@media (min-width:760px){.routes{grid-template-columns:1fr 1fr;gap:var(--gap)}}
-.route{border-top:2px solid var(--ink);padding-top:13px}
-.route h3{font-family:var(--display);text-transform:uppercase;font-size:20px;margin:7px 0 9px}
-.route ol{margin:0;padding-left:18px;color:var(--ink-soft)}
-.route li{margin:0 0 6px}
-code{font-family:var(--mono);font-size:.92em;background:var(--paper-3);border:1px solid var(--line-faint);padding:1px 6px}
+.empty{display:flex;align-items:center;justify-content:center;aspect-ratio:4/3;font-size:13px;font-weight:600;color:var(--ink-mute);background:var(--well)}
 
-/* ============ learn ============ */
-.learn{display:grid;gap:18px;margin-top:24px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
-.lesson{display:block;text-decoration:none;border:1px solid var(--line-faint);background:var(--paper-2);padding:16px;transition:border-color .15s}
-.lesson:hover{border-color:var(--ink)}
-.lesson h3{font-family:var(--display);text-transform:uppercase;font-size:18px;margin:7px 0 6px}
-.lesson p{margin:0;color:var(--ink-soft);font-size:15px}
+/* download */
+.get{background:var(--card);border-radius:32px;padding:clamp(24px,4vw,48px);display:flex;flex-wrap:wrap;gap:24px 40px;box-shadow:0 2px 0 var(--edge)}
+.get__intro{flex:1 1 320px}
+.get__intro .h2{font-size:clamp(30px,3.6vw,44px);margin-bottom:14px}
+.get__intro p{font-size:17px;margin-bottom:24px}
+.route{flex:1 1 260px;background:var(--ground);border-radius:var(--radius);padding:22px}
+.route b{font-size:17px}
+.route .tag{margin-left:8px;font-size:12px;font-weight:800;background:var(--honey);border-radius:999px;padding:3px 9px}
+.route ol{margin:14px 0 0;padding-left:20px;color:var(--ink-soft);line-height:1.9}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;background:var(--well);padding:2px 6px;border-radius:6px;color:var(--ink)}
 
-/* ============ releases ============ */
-.rel{border-top:1px solid var(--line-faint);padding:16px 0;display:grid;gap:8px}
-@media (min-width:720px){.rel{grid-template-columns:150px 1fr;gap:var(--gap)}}
-.rel__ver{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--cut)}
-.rel ul{margin:0;padding-left:17px;color:var(--ink-soft)}
-.rel li{margin:0 0 4px}
+/* learn + releases */
+.split{display:flex;flex-wrap:wrap;gap:24px}
+.split__main{flex:2 1 480px;min-width:0}
+.split__side{flex:1 1 300px;background:var(--card);border-radius:var(--radius);padding:22px;box-shadow:0 2px 0 var(--edge)}
+.h3{font-size:32px;letter-spacing:-.02em;font-weight:800;margin-bottom:20px}
+.lessons{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.lesson{text-decoration:none;background:var(--card);border-radius:18px;padding:18px;display:flex;gap:14px;align-items:center;box-shadow:0 2px 0 var(--edge);transition:transform .15s}
+.lesson:hover{transform:translateY(-3px)}
+.lesson__play{width:44px;height:44px;flex:none;border-radius:13px;background:var(--ink);display:flex;align-items:center;justify-content:center}
+.lesson b{display:block}
+.lesson span span{font-size:14px;color:var(--ink-mute)}
+.rels{display:flex;flex-direction:column;gap:14px}
+.rel{display:flex;gap:12px}
+.rel__ver{font-weight:800;background:var(--well);border-radius:9px;padding:4px 9px;height:fit-content;font-size:14px;white-space:nowrap}
+.rel:first-child .rel__ver{background:var(--honey-tint)}
+.rel ul{margin:0;padding-left:18px;color:var(--ink-soft);font-size:15px}
+.rel small{display:block;color:var(--ink-mute);font-size:13px}
 
-/* ============ contact ============ */
-.contact{display:grid;gap:20px;margin-top:24px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
-.contact__cell{border-top:2px solid var(--ink);padding-top:12px}
-.contact__cell h3{font-family:var(--display);text-transform:uppercase;font-size:19px;margin:6px 0}
-.contact__cell p{margin:0;color:var(--ink-soft)}
-.contact__cell a{text-decoration:none;border-bottom:1px solid var(--line)}
-.contact__cell a:hover{color:var(--cut);border-color:var(--cut)}
-
-/* ============ closing band ============ */
-.band{margin-top:var(--gap);background:var(--ink);color:var(--paper-2);padding:clamp(34px,6vw,64px) 0}
-.band h2{font-family:var(--display);font-weight:700;text-transform:uppercase;font-size:clamp(26px,4.4vw,44px);line-height:1.02;max-width:18ch}
-.band p{color:#A9B7B1;max-width:44ch;margin:14px 0 22px}
-.band .btn{background:var(--paper-2);color:var(--ink);border-color:var(--paper-2)}
-.band .btn:hover{background:var(--cut);border-color:var(--cut);color:#fff}
-
-/* ============ footer ============ */
-.foot{background:var(--ink);color:#A9B7B1;padding:0 0 44px}
-.foot__grid{display:grid;gap:26px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));padding-top:34px;border-top:1px solid #2C3A36}
-.foot__col h4{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--paper-2);margin:0 0 11px;font-weight:500}
-.foot__col a{display:block;text-decoration:none;padding:4px 0;font-size:15px}
-.foot__col a:hover{color:#fff}
-.foot__end{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:32px;padding-top:15px;border-top:1px solid #2C3A36;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+/* closing band + footer */
+.band{margin-top:96px;background:var(--honey);border-radius:32px;padding:clamp(28px,5vw,60px);display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between}
+.band h2{font-size:clamp(28px,3.6vw,44px);letter-spacing:-.03em;font-weight:800;line-height:1.08;max-width:20ch}
+.band p{margin-top:12px;max-width:44ch;color:#3A3220}
+.foot{display:flex;flex-wrap:wrap;gap:16px 24px;justify-content:space-between;padding:32px 0 48px;color:var(--ink-mute);font-size:14px}
+.foot nav{display:flex;gap:18px;flex-wrap:wrap}
+.foot a{text-decoration:none;font-weight:600}
+.foot a:hover{color:var(--ink)}
 
 /* ============ motion ============ */
-.reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
 .reveal.is-in{opacity:1;transform:none}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .reveal{opacity:1;transform:none;transition:none}
+  .toast,.dock__btn{animation:none}
+  .btn,.tool,.lesson{transition:none}
+}
 </style>
 </head>
 <body>
-
 <header class="bar">
   <div class="bar__in">
-    <a class="brand" href="#top">
-      <svg class="brand__mark" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4">
-        <path d="M1 19h22M4 15c3-5 6-2 8-5s5-4 8 1"/><path d="M6 11c2.5-3.6 5-1.2 7-3.6S17.5 4.6 20 7" opacity=".55"/>
-      </svg>
+    <a class="brand" href="#top" aria-label="Terra home">
+      <span class="brand__mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2B2F36" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 18c3-5 6-2 9-6s6-5 11 1"/><path d="M5 12c2-3 4-1 6-3.5S15 6 18 8" opacity=".5"/></svg>
+      </span>
       <span class="brand__text">Terra</span>
     </a>
     <nav class="nav" id="nav" aria-label="Sections"></nav>
-    <a class="btn" id="barCta" href="#download">Download</a>
-    <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false"><i></i><i></i><i></i></button>
+    <a class="btn btn--sm" id="barCta" href="#download">Download free</a>
+    <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="drawer"><i></i><i></i><i></i></button>
   </div>
+  <nav class="drawer" id="drawer" aria-label="Sections"></nav>
 </header>
-<div class="drawer" id="drawer"><div class="sheet" id="drawerLinks"></div></div>
 
-<main id="top">
-  <div class="sheet">
+<main id="top" class="sheet">
+  <section class="hero">
+    <div class="hero__text">
+      <span class="pill"><b>Free</b><span id="heroFacts">Rhino 7 and 8 · Windows</span></span>
+      <h1>Shape the ground like it’s play.</h1>
+      <p class="hero__lede">Terra is a terrain plug-in for Rhino. Sculpt landforms, grade paths and platforms, pull in a real site and read the sun on it, without leaving the viewport.</p>
+      <div class="hero__actions" id="heroActions"></div>
+      <p class="hero__note">No licence key. Install from Rhino’s Package Manager.</p>
+    </div>
 
-    <section class="hero">
-      <div class="hero__head">
-        <div>
-          <span class="tag">Free plugin · Rhino 7 &amp; 8 · Windows</span>
-          <h1>Terrain,<br>solved<em>.</em></h1>
-        </div>
-        <div>
-          <p class="hero__lede">Placeholder. Terra brings <b>ground modelling, real site data and earthwork</b> into Rhino, so landscape architects stop exporting to another package just to move a contour.</p>
-          <div class="hero__actions" id="heroActions"></div>
-          <div class="hero__facts" id="heroFacts"></div>
-        </div>
+    <div class="hero__visual">
+      <div class="shot" id="hero"></div>
+      <div class="dock" aria-hidden="true">
+        <span class="dock__grip"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="dock__btn" data-icon="pin"></span>
+        <span class="dock__btn is-terrain" data-icon="terrain"></span>
+        <span class="dock__btn cyc" data-icon="path"></span>
+        <span class="dock__btn cyc" data-icon="platform"></span>
+        <span class="dock__btn cyc" data-icon="stairs"></span>
+        <span class="dock__div"></span>
+        <span class="dock__btn" data-icon="sculpt"></span>
+        <span class="dock__btn" data-icon="scatter"></span>
       </div>
-      <figure class="frame" id="hero"></figure>
-    </section>
-
-    <section class="logos">
-      <span class="tag">Used in studios and schools</span>
-      <div class="logos__grid" id="logos"></div>
-    </section>
-
-    <section class="sec" id="features">
-      <div class="sechead"><h2>Features</h2><span class="tag">Six toolsets</span></div>
-      <p class="sec__intro">Placeholder. One paragraph on how the toolsets fit together, written once you know which capture belongs to which card.</p>
-      <div class="cards" id="cards"></div>
-    </section>
-
-    <section class="sec" id="gallery">
-      <div class="sechead"><h2>Gallery</h2><span class="tag">Captures</span></div>
-      <div class="gallery" id="galleryGrid"></div>
-    </section>
-
-    <section class="sec" id="download">
-      <div class="sechead"><h2>Download</h2><span class="tag">Two routes in</span></div>
-      <div class="routes">
-        <div class="route">
-          <span class="tag">Route A — recommended</span>
-          <h3>Package Manager</h3>
-          <ol>
-            <li>Open Rhino.</li>
-            <li>Run <code>_PackageManager</code>.</li>
-            <li>Search <code>Terra</code>, click Install.</li>
-            <li>Restart Rhino.</li>
-          </ol>
-        </div>
-        <div class="route">
-          <span class="tag">Route B — manual</span>
-          <h3>Installer download</h3>
-          <ol>
-            <li>Download the package from Food4Rhino.</li>
-            <li>Close Rhino.</li>
-            <li>Run the installer.</li>
-            <li>Reopen Rhino — commands start with <code>Terra_</code>.</li>
-          </ol>
-        </div>
+      <div class="toast" aria-hidden="true">
+        <span class="toast__icon" data-icon="path"></span>
+        <span><b>Path 1 · 3.61 m</b><span>Max slope 5.4%, daylight resolved</span></span>
       </div>
-    </section>
-
-    <section class="sec" id="learn">
-      <div class="sechead"><h2>Learn</h2><span class="tag">Placeholder</span></div>
-      <p class="sec__intro">Placeholder. Short tutorials and worked examples — swap in real links when the videos exist.</p>
-      <div class="learn" id="learnGrid"></div>
-    </section>
-
-    <section class="sec" id="releases">
-      <div class="sechead"><h2>Releases</h2><span class="tag">Changelog</span></div>
-      <div id="releaseList"></div>
-    </section>
-
-    <section class="sec" id="contact">
-      <div class="sechead"><h2>Contact</h2><span class="tag">Get in touch</span></div>
-      <div class="contact" id="contactGrid"></div>
-    </section>
-
-  </div>
-
-  <section class="band">
-    <div class="sheet">
-      <h2>Built by a landscape architect, for landscape architects.</h2>
-      <p>Placeholder. Two sentences on why Terra exists and who it is for.</p>
-      <a class="btn" href="#download">Download Terra</a>
     </div>
   </section>
-</main>
 
-<footer class="foot">
-  <div class="sheet">
-    <div class="foot__grid" id="footGrid"></div>
-    <div class="foot__end"><span id="footVer">Terra</span><span>Free to use</span></div>
-  </div>
-</footer>
+  <section class="sec" id="tools">
+    <div class="sechead">
+      <div><p class="eyebrow">The toolbox</p><h2 class="h2">Everything on the ground plane.</h2></div>
+      <p class="muted">Each tool lives in the floating sidebar. Pick one, drag in the viewport, and Terra keeps the slopes honest.</p>
+    </div>
+    <div class="tools" id="tools-grid"></div>
+  </section>
+
+  <section class="sec" id="workflow">
+    <p class="eyebrow">From site to bake</p>
+    <h2 class="h2" style="margin-bottom:36px">Five moves, one viewport.</h2>
+    <div class="steps" id="steps"></div>
+  </section>
+
+  <section class="sec" id="download">
+    <div class="get reveal">
+      <div class="get__intro">
+        <p class="eyebrow">Get Terra</p>
+        <h2 class="h2">Installed in under a minute.</h2>
+        <p class="muted">Free for Rhino 7 and 8 on Windows. Commands start with <code>Terra_</code>.</p>
+        <a class="btn" id="getCta" href="#download" rel="noopener">Download from Food4Rhino</a>
+      </div>
+      <div class="route">
+        <b>Package Manager</b><span class="tag">Easiest</span>
+        <ol><li>Open Rhino</li><li>Run <code>_PackageManager</code></li><li>Search <code>Terra</code> and install</li><li>Restart Rhino</li></ol>
+      </div>
+      <div class="route">
+        <b>Manual install</b>
+        <ol><li>Download the package</li><li>Close Rhino</li><li>Run the installer</li><li>Reopen Rhino</li></ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec split" id="learn">
+    <div class="split__main">
+      <h2 class="h3">Learn by doing</h2>
+      <div class="lessons" id="lessons"></div>
+    </div>
+    <aside class="split__side" id="releases">
+      <h2 style="font-size:22px;font-weight:800;margin-bottom:14px">What’s new</h2>
+      <div class="rels" id="releaseList"></div>
+    </aside>
+  </section>
+
+  <section class="band reveal">
+    <div>
+      <h2>Built by a landscape architect, for landscape architects.</h2>
+      <p id="bandText"></p>
+    </div>
+    <a class="btn btn--dark" href="#download">Download Terra</a>
+  </section>
+
+  <footer class="foot">
+    <span id="footVer">Terra for Rhino · free to use</span>
+    <nav id="footLinks" aria-label="Footer"></nav>
+  </footer>
+</main>
 
 <script>
 /* ==========================================================
    CONFIG — the only block you edit.
    media type: "video" (mp4, preferred) or "image" (webp/jpg)
+   icons: pin, terrain, path, platform, stairs, wall, sculpt, scatter, sun, library
+   tints: sky, honey, leaf, sun
    ========================================================== */
 const SITE = {
   version: "2.0",
 
   nav: [
-    { label:"Features", href:"#features" },
-    { label:"Gallery",  href:"#gallery"  },
+    { label:"Tools",    href:"#tools"    },
+    { label:"Workflow", href:"#workflow" },
     { label:"Download", href:"#download" },
     { label:"Learn",    href:"#learn"    },
-    { label:"Releases", href:"#releases" },
-    { label:"Contact",  href:"#contact"  }
+    { label:"Releases", href:"#releases" }
   ],
 
   links: {
-    food4rhino: "https://www.food4rhino.com/",     // ← replace
+    food4rhino: "https://www.food4rhino.com/",     // ← replace with the Terra page
     forum:      "https://discourse.mcneel.com/",   // ← replace
     youtube:    "",                                // "" hides it
     linkedin:   "",
     email:      "you@example.com"                  // ← replace
   },
 
-  facts: ["Rhino 7 and 8", "Windows", "No licence key", "Free"],
+  facts: "Rhino 7 and 8 · Windows",
 
-  hero: { type:"video", src:"media/hero.mp4", poster:"media/hero.jpg",
-          caption:"Placeholder — hero capture", note:"Rhino viewport" },
+  hero: { type:"image", src:"media/hero.webp", alt:"Terra in the Rhino viewport: a graded path winding up to a building platform" },
 
-  /* { name } draws a placeholder box · { name, src } shows a real logo file */
-  logos: [
-    { name:"LOGO 01" }, { name:"LOGO 02" }, { name:"LOGO 03" },
-    { name:"LOGO 04" }, { name:"LOGO 05" }, { name:"LOGO 06" }
+  tools: [
+    { icon:"pin",      tint:"sky",   title:"Import site",
+      body:"Real terrain, buildings and roads for any location, placed at the right origin." },
+    { icon:"sculpt",   tint:"honey", title:"Sculpt",
+      body:"Raise, lower, flatten and smooth with a brush. Contours update as you paint." },
+    { icon:"path",     tint:"honey", title:"Paths",
+      body:"Draw a centreline, set the slope, and the banks grade themselves into the ground." },
+    { icon:"platform", tint:"honey", title:"Platforms, stairs, walls",
+      body:"Level pads for buildings, stepped connections and retaining edges that cut cleanly." },
+    { icon:"scatter",  tint:"leaf",  title:"Scatter and assets",
+      body:"Paint trees, people and furniture from the asset library, with scale and rotation jitter." },
+    { icon:"sun",      tint:"sun",   title:"Analysis",
+      body:"Slope, elevation, cut and fill, and sunlight hours read straight off the model." }
   ],
 
-  cards: [
-    { code:"01", title:"Sculpt", bullets:["Brush-based ground modelling","Live contour lines","Bake to mesh or surface"],
-      media:{ type:"video", src:"media/sculpt.mp4", poster:"media/sculpt.jpg" }, caption:"Placeholder — sculpt" },
-    { code:"02", title:"Site import", bullets:["OSM buildings and roads","DEM terrain and satellite","Google 3D tiles"],
-      media:{ type:"video", src:"media/import-site.mp4", poster:"media/import-site.jpg" }, caption:"Placeholder — site import" },
-    { code:"03", title:"Paths + walls", bullets:["Graded centrelines","Slope control","Daylight lines resolved"],
-      media:{ type:"video", src:"media/paths.mp4", poster:"media/paths.jpg" }, caption:"Placeholder — paths" },
-    { code:"04", title:"Cut + fill", bullets:["Volumes off the model","Cut red, fill blue","Sections on any clipping plane"],
-      media:{ type:"image", src:"media/cutfill.webp" }, caption:"Placeholder — cut and fill" },
-    { code:"05", title:"Scatter", bullets:["Paint planting and furniture","Rotation and scale jitter","Live preview, commit on release"],
-      media:{ type:"video", src:"media/scatter.mp4", poster:"media/scatter.jpg" }, caption:"Placeholder — scatter" },
-    { code:"06", title:"Assets", bullets:["Cloud block library","Repeating edges and railings","Driven along any curve"],
-      media:{ type:"video", src:"media/array.mp4", poster:"media/array.jpg" }, caption:"Placeholder — assets" }
-  ],
-
-  gallery: [
-    { media:{ type:"image", src:"media/gallery-01.webp" }, caption:"Placeholder — image 01" },
-    { media:{ type:"image", src:"media/gallery-02.webp" }, caption:"Placeholder — image 02" },
-    { media:{ type:"image", src:"media/gallery-03.webp" }, caption:"Placeholder — image 03" },
-    { media:{ type:"image", src:"media/gallery-04.webp" }, caption:"Placeholder — image 04" }
+  steps: [
+    { title:"Add terrain",     body:"Start flat, from points, from a GeoTIFF or from an imported site.",
+      media:{ type:"video", src:"media/terrain.mp4", poster:"media/terrain.webp" }, alt:"Landform created from a flat terrain" },
+    { title:"Shape it",        body:"Sculpt by hand, or grab an edge and drag. Slope labels follow the cursor.",
+      media:{ type:"video", src:"media/shape.mp4", poster:"media/shape.webp" }, alt:"Terrain edited with contours and slope labels" },
+    { title:"Grade paths",     body:"Paths, walls and stairs cut and fill the ground around them.",
+      media:{ type:"video", src:"media/paths.mp4", poster:"media/paths.webp" }, alt:"A path with retaining walls graded into the slope" },
+    { title:"Place platforms", body:"Level pads for buildings, courts and terraces, with banks resolved.",
+      media:{ type:"video", src:"media/platforms.mp4", poster:"media/platforms.webp" }, alt:"Platforms and a tunnel cut through the terrain" },
+    { title:"Bake",            body:"One tick turns it all into Rhino surfaces or meshes.",
+      media:{ type:"video", src:"media/bake.mp4", poster:"media/bake.webp" }, alt:"Building on a finished platform, ready to bake" }
   ],
 
   lessons: [
-    { n:"01", title:"First terrain",   text:"Placeholder. Flat rectangle to graded mound in five minutes.", href:"#" },
-    { n:"02", title:"Import a site",   text:"Placeholder. Pulling a real location into Rhino and setting the origin.", href:"#" },
-    { n:"03", title:"Grade a path",    text:"Placeholder. Centreline to finished path with a daylight line.", href:"#" },
-    { n:"04", title:"Read cut + fill", text:"Placeholder. Getting earthwork volumes out of a proposal.", href:"#" }
+    { title:"First terrain",     length:"Coming soon", href:"#" },
+    { title:"Import a real site", length:"Coming soon", href:"#" },
+    { title:"Grade a path",      length:"Coming soon", href:"#" },
+    { title:"Read the sun",      length:"Coming soon", href:"#" }
   ],
 
   releases: [
-    { ver:"v2.0", date:"Placeholder date", items:["Placeholder headline change","Placeholder second change","Placeholder third change"] },
-    { ver:"v1.9", date:"Placeholder date", items:["Placeholder change","Placeholder fix"] },
-    { ver:"v1.8", date:"Placeholder date", items:["Placeholder change"] }
+    { ver:"v2.0", date:"Placeholder date", items:["New floating sidebar and white panels","Settings dialog","Placeholder third change"] },
+    { ver:"v1.9", date:"Placeholder date", items:["Placeholder change","Placeholder fix"] }
   ],
 
-  footer: [
-    { head:"Get Terra", links:[["Download","#download"],["Install guide","#download"],["Releases","#releases"]] },
-    { head:"Toolsets",  links:[["Sculpt","#features"],["Site import","#features"],["Cut and fill","#features"],["Scatter","#features"]] },
-    { head:"Learn",     links:[["Tutorials","#learn"],["Gallery","#gallery"]] },
-    { head:"Support",   links:[["Report a bug","#contact"],["McNeel forum","#contact"],["Email","#contact"]] }
-  ]
+  band: "Placeholder. Two sentences on why Terra exists and who it is for."
 };
 
 /* ==========================================================
@@ -366,10 +373,27 @@ const SITE = {
   const byId = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+  const ICONS = {
+    pin:      '<path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>',
+    terrain:  '<path d="M2 19l6-9 4 5 3-4 7 8z"/>',
+    path:     '<path d="M5 21c0-6 14-4 14-10S9 7 9 3"/>',
+    platform: '<path d="M3 14l9-5 9 5-9 5z"/><path d="M3 14v3l9 5 9-5v-3"/>',
+    stairs:   '<path d="M3 20h5v-5h5v-5h5V5h3"/>',
+    wall:     '<rect x="3" y="6" width="18" height="12" rx="1"/><path d="M3 12h18M9 6v6M15 12v6"/>',
+    sculpt:   '<path d="M14 4l6 6-9 9H5v-6z"/><path d="M11 7l6 6"/>',
+    scatter:  '<circle cx="8" cy="9" r="4"/><circle cx="16" cy="13" r="3"/><path d="M8 13v7M16 16v4"/>',
+    sun:      '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    library:  '<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/>'
+  };
+  const icon = (name, size = 20, sw = 1.8) =>
+    `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
+  document.querySelectorAll("[data-icon]").forEach(el => el.innerHTML = icon(el.dataset.icon));
+
+  const L = SITE.links;
   const navHtml = SITE.nav.map(n => `<a href="${esc(n.href)}">${esc(n.label)}</a>`).join("");
   byId("nav").innerHTML = navHtml;
-  byId("drawerLinks").innerHTML = navHtml;
-  byId("barCta").href = SITE.links.food4rhino || "#download";
+  byId("drawer").innerHTML = navHtml;
+  byId("barCta").href = byId("getCta").href = L.food4rhino || "#download";
 
   const burger = byId("burger"), drawer = byId("drawer");
   burger.addEventListener("click", () => {
@@ -380,74 +404,70 @@ const SITE = {
     if (e.target.tagName === "A") { drawer.classList.remove("is-open"); burger.setAttribute("aria-expanded", "false"); }
   });
 
+  byId("heroFacts").textContent = SITE.facts;
   byId("heroActions").innerHTML =
-    `<a class="btn" href="${esc(SITE.links.food4rhino || "#download")}" rel="noopener">Download free</a>` +
-    `<a class="btn btn--ghost" href="#features">See what it does</a>`;
-  byId("heroFacts").innerHTML = SITE.facts.map(f => `<span class="tag">${esc(f)}</span>`).join("");
+    `<a class="btn" href="${esc(L.food4rhino || "#download")}" rel="noopener"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download Terra</a>` +
+    `<a class="btn btn--white" href="#workflow">Watch it work</a>`;
 
   function media(m, alt) {
-    if (!m || !m.src) return `<div class="frame__empty"><span>Drop a file in /media</span></div>`;
+    if (!m || !m.src) return `<div class="empty">Drop a file in /media</div>`;
     if (m.type === "video")
       return `<video muted loop playsinline preload="none"${m.poster ? ` poster="${esc(m.poster)}"` : ""} data-src="${esc(m.src)}" aria-label="${esc(alt)}"></video>`;
-    return `<img src="${esc(m.src)}" alt="${esc(alt)}" loading="lazy" decoding="async">`;
+    return `<img src="${esc(m.src)}" alt="${esc(alt)}" decoding="async">`;
   }
-  const frame = (m, cap, note, alt) =>
-    `<div class="frame__media">${media(m, alt)}</div>
-     <figcaption class="frame__cap"><span>${esc(cap)}</span><span>${esc(note)}</span></figcaption>`;
 
-  byId("hero").innerHTML = frame(SITE.hero, SITE.hero.caption, SITE.hero.note, "Terra in use");
+  byId("hero").innerHTML = media(SITE.hero, SITE.hero.alt);
 
-  byId("logos").innerHTML = SITE.logos.map(l =>
-    `<div class="logo">${l.src ? `<img src="${esc(l.src)}" alt="${esc(l.name)}" loading="lazy">` : esc(l.name)}</div>`).join("");
-
-  byId("cards").innerHTML = SITE.cards.map(c => `
-    <article class="card reveal">
-      <div class="frame frame--flush">${frame(c.media, c.caption, "TR-" + esc(c.code), c.title)}</div>
-      <div class="card__body">
-        <span class="card__code">TR-${esc(c.code)}</span>
-        <h3>${esc(c.title)}</h3>
-        <ul>${c.bullets.map(b => `<li>${esc(b)}</li>`).join("")}</ul>
-      </div>
+  byId("tools-grid").innerHTML = SITE.tools.map(t => `
+    <article class="tool reveal">
+      <span class="tool__icon tint-${esc(t.tint)}">${icon(t.icon, 26)}</span>
+      <h3>${esc(t.title)}</h3>
+      <p>${esc(t.body)}</p>
     </article>`).join("");
 
-  byId("galleryGrid").innerHTML = SITE.gallery.map((g, i) =>
-    `<figure class="frame reveal">${frame(g.media, g.caption, String(i + 1).padStart(2, "0"), g.caption)}</figure>`).join("");
+  byId("steps").innerHTML = SITE.steps.map((s, i) => `
+    <article class="step reveal">
+      <div class="step__media">${media(s.media, s.alt)}</div>
+      <div class="step__head"><span class="step__n">${i + 1}</span><b>${esc(s.title)}</b></div>
+      <p>${esc(s.body)}</p>
+    </article>`).join("");
 
-  byId("learnGrid").innerHTML = SITE.lessons.map(l => `
+  byId("lessons").innerHTML = SITE.lessons.map(l => `
     <a class="lesson reveal" href="${esc(l.href)}">
-      <span class="tag">${esc(l.n)}</span><h3>${esc(l.title)}</h3><p>${esc(l.text)}</p>
+      <span class="lesson__play"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg></span>
+      <span><b>${esc(l.title)}</b><span>${esc(l.length)}</span></span>
     </a>`).join("");
 
   byId("releaseList").innerHTML = SITE.releases.map(r => `
     <div class="rel">
-      <div><span class="rel__ver">${esc(r.ver)}</span><br><span class="tag">${esc(r.date)}</span></div>
-      <ul>${r.items.map(i => `<li>${esc(i)}</li>`).join("")}</ul>
+      <span class="rel__ver">${esc(r.ver)}</span>
+      <div><ul>${r.items.map(i => `<li>${esc(i)}</li>`).join("")}</ul><small>${esc(r.date)}</small></div>
     </div>`).join("");
 
-  const L = SITE.links;
-  const social = [L.linkedin && `<a href="${esc(L.linkedin)}" rel="noopener">LinkedIn</a>`,
-                  L.youtube && `<a href="${esc(L.youtube)}" rel="noopener">YouTube</a>`].filter(Boolean).join(" · ");
-  const cells = [
-    ["Email",  `<a href="mailto:${esc(L.email)}">${esc(L.email)}</a>`, "Bugs, questions, feature requests."],
-    ["Forum",  L.forum ? `<a href="${esc(L.forum)}" rel="noopener">McNeel Discourse</a>` : "Placeholder", "Public discussion and support threads."],
-    ["Follow", social || "Placeholder", "Release notes and new captures."]
-  ];
-  byId("contactGrid").innerHTML = cells.map(([h, body, note]) =>
-    `<div class="contact__cell"><span class="tag">${esc(h)}</span><h3>${body}</h3><p>${esc(note)}</p></div>`).join("");
-
-  byId("footGrid").innerHTML = SITE.footer.map(col => `
-    <div class="foot__col"><h4>${esc(col.head)}</h4>
-      ${col.links.map(([t, h]) => `<a href="${esc(h)}">${esc(t)}</a>`).join("")}
-    </div>`).join("");
-  byId("footVer").textContent = "Terra " + SITE.version;
+  byId("bandText").textContent = SITE.band;
+  byId("footVer").textContent = `Terra ${SITE.version} for Rhino · free to use`;
+  byId("footLinks").innerHTML = [
+    `<a href="${esc(L.food4rhino || "#download")}" rel="noopener">Download</a>`,
+    `<a href="#learn">Tutorials</a>`,
+    L.forum && `<a href="${esc(L.forum)}" rel="noopener">McNeel forum</a>`,
+    L.youtube && `<a href="${esc(L.youtube)}" rel="noopener">YouTube</a>`,
+    L.linkedin && `<a href="${esc(L.linkedin)}" rel="noopener">LinkedIn</a>`,
+    L.email && `<a href="mailto:${esc(L.email)}">Email</a>`
+  ].filter(Boolean).join("");
 
   document.addEventListener("error", e => {
     const el = e.target;
     if (!(el instanceof HTMLImageElement || el instanceof HTMLVideoElement)) return;
-    const wrap = el.closest(".frame__media");
-    if (wrap) wrap.innerHTML = `<div class="frame__empty"><span>Missing: ${esc(el.dataset.src || el.getAttribute("src"))}</span></div>`;
+    const wrap = el.parentElement;
+    if (!wrap) return;
+    // video can't play here (missing file or codec): fall back to its poster still
+    const poster = el instanceof HTMLVideoElement && el.getAttribute("poster");
+    wrap.innerHTML = poster
+      ? `<img src="${esc(poster)}" alt="${esc(el.getAttribute("aria-label"))}" decoding="async">`
+      : `<div class="empty">Missing: ${esc(el.dataset.src || el.getAttribute("src"))}</div>`;
   }, true);
 
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const io = new IntersectionObserver(entries => {
     entries.forEach(en => {
       const el = en.target;
@@ -457,7 +477,7 @@ const SITE = {
       }
       if (en.isIntersecting) {
         if (!el.src && el.dataset.src) { el.src = el.dataset.src; el.load(); }
-        el.play().catch(() => {});
+        if (!reduce) el.play().catch(() => {});
       } else el.pause();
     });
   }, { rootMargin: "200px 0px" });

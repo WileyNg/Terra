@@ -7,9 +7,9 @@ Static site. No build step, no dependencies, no framework. One HTML file plus a 
 ├── index.html      ← the whole site (layout + a CONFIG block you edit)
 ├── README.md
 └── media/          ← your images and videos
-    ├── hero.mp4
-    ├── hero.jpg
-    ├── sculpt.mp4
+    ├── hero.webp
+    ├── paths.mp4
+    ├── paths.webp
     └── ...
 ```
 
@@ -23,19 +23,20 @@ Every `git push` to `main` republishes. That is the entire deployment pipeline.
 
 ## Adding content
 
-Open `index.html`, find the `const SITE = {` block near the bottom. Add an object to `plates`:
+Open `index.html`, find the `const SITE = {` block near the bottom. Everything editable lives there:
+
+- `links`: Food4Rhino page, forum, email, socials (`""` hides one).
+- `tools`: the toolbox cards. `icon` is one of `pin, terrain, path, platform, stairs, wall, sculpt, scatter, sun, library`; `tint` is `sky, honey, leaf` or `sun`.
+- `steps`: the "Five moves" strip. Each step takes a looping MP4 plus a poster still:
 
 ```js
-{
-  code: "TR-08",
-  title: "New thing",
-  body: "One or two sentences. <b>Bold</b> works.",
-  media: { type:"video", src:"media/newthing.mp4", poster:"media/newthing.jpg" },
-  caption: "Short caption"
-}
+{ title:"Grade paths", body:"One sentence.",
+  media:{ type:"video", src:"media/paths.mp4", poster:"media/paths.webp" }, alt:"What the clip shows" }
 ```
 
-Drop the files in `media/`, commit, push. Done.
+- `lessons`, `releases`, `band`: tutorials, changelog and the closing blurb.
+
+If a browser can't play a video, the poster still is shown instead. Drop the files in `media/`, commit, push. Done.
 
 ## Media rules (this is where the money and the load time go)
 
